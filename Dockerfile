@@ -5,11 +5,14 @@ FROM alpine:3.21
 COPY webd /usr/local/bin/webd
 
 RUN chmod +x /usr/local/bin/webd \
-    && mkdir -p /data
+    && mkdir -p /data \
+    && file /usr/local/bin/webd \
+    && ls -lh /usr/local/bin/webd \
+    && echo ">>> webd binary verified OK"
 
 EXPOSE 9212
 
-# webd 启动后自动加载 /etc/webd.conf（如挂载了配置文件）
-# 以下 CMD 为默认命令行参数，可被 docker-compose 覆盖
+ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 ENTRYPOINT ["webd"]
 CMD ["-w", "/data", "-u", "rlumSDT:admin:admin123", "-l", "0.0.0.0:9212"]
