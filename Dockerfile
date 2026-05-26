@@ -7,4 +7,4 @@ RUN chmod +x /usr/local/bin/webd \
 
 EXPOSE 9212
 ENTRYPOINT ["webd"]
-CMD ["-w", "/data", "-u", "rlumSDT:admin:admin123", "-l", "0.0.0.0:9212"]
+CMD ["-w", "/data"]
