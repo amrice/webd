@@ -101,6 +101,18 @@ webd.exe -w D:\sharedata -u rlum:user:pass
 
 ---
 
+## 📂 文件导航
+
+| 文件 | 说明 |
+|------|------|
+| [Dockerfile](Dockerfile) | Docker 镜像构建文件 |
+| [docker-compose.yml](docker-compose.yml) | Compose 部署模板 |
+| [entrypoint.sh](entrypoint.sh) | 容器启动脚本 |
+| [webd.conf](webd.conf) | webd 配置文件模板 |
+| [docs/webd/troubleshooting-player-404.md](docs/webd/troubleshooting-player-404.md) | 视频播放 404 排查与修复记录 |
+
+---
+
 ## 🔗 链接
 
 - 官方文档: https://webd.cf/webd/
