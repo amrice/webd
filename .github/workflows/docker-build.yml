@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: '指定版本号（如 20240223），留空则自动检测最新版'
+        description: '指定版本号（如 20240223），留空则自动检测'
         required: false
 
 jobs:
@@ -39,27 +39,8 @@ jobs:
               | sort -rn \
               | head -1)
           fi
-          if [ -z "$VER" ]; then
-            echo "::error::无法检测到 webd 版本"
-            exit 1
-          fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
           echo ">>> 最新版本: $VER"
-
-      - name: Download webd binary
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          echo ">>> 下载 webd ${VERSION}"
-
-          gh api "repos/webd90kb/webd/contents/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz" \
-            --header "Accept: application/vnd.github.raw" > webd.tar.gz
-
-          tar -xzf webd.tar.gz
-          cp webd/webd ./webd
-          chmod +x webd
-          ls -lh webd
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -74,19 +55,20 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           IMAGE="ghcr.io/${{ github.repository_owner }}/webd:${VERSION}"
           if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
-            echo ">>> 镜像 ${IMAGE} 已存在，跳过构建"
+            echo ">>> 镜像已存在，跳过"
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
-            echo ">>> 镜像 ${IMAGE} 不存在，开始构建"
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build and push Docker image
+      - name: Build and push
         if: steps.check.outputs.skip != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
+          build-args: |
+            WEBD_VERSION=${{ steps.version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository_owner }}/webd:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/webd:latest
