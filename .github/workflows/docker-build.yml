@@ -27,13 +27,14 @@ jobs:
 
       - name: Detect latest webd version
         id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ -n "${{ github.event.inputs.version }}" ]; then
             VER="${{ github.event.inputs.version }}"
           else
-            VER=$(curl -sS -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/webd90kb/webd/contents/docs/webd/webd_dl" \
-              | jq -r '.[].name' \
+            VER=$(gh api repos/webd90kb/webd/contents/docs/webd/webd_dl \
+              --jq '.[].name' \
               | grep -E '^[0-9]{8}$' \
               | sort -rn \
               | head -1)
@@ -46,17 +47,16 @@ jobs:
           echo ">>> 最新版本: $VER"
 
       - name: Download webd binary
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          URL="https://api.github.com/repos/webd90kb/webd/contents/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
-          echo ">>> 下载: $URL"
+          echo ">>> 下载 webd ${VERSION}"
 
-          # GitHub API raw 端点，同域内网，无需担心 CDN 限速
-          curl -fsSL -H "Accept: application/vnd.github.raw" "$URL" -o webd.tar.gz
+          gh api "repos/webd90kb/webd/contents/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz" \
+            --header "Accept: application/vnd.github.raw" > webd.tar.gz
 
           tar -xzf webd.tar.gz
-          ls -la webd/
-
           cp webd/webd ./webd
           chmod +x webd
           ls -lh webd
