@@ -43,13 +43,18 @@ jobs:
           echo ">>> 最新版本: $VER"
 
       - name: Download webd binary
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           V="${{ steps.version.outputs.version }}"
-          echo ">>> 下载 webd ${V}"
-          gh api "repos/webd90kb/webd/contents/docs/webd/webd_dl/${V}/webd-${V}-x86_64-linux-musl.tar.gz" \
-            --jq '.content' | base64 -d > webd.tar.gz
+          URL="https://raw.githubusercontent.com/webd90kb/webd/master/docs/webd/webd_dl/${V}/webd-${V}-x86_64-linux-musl.tar.gz"
+          echo ">>> 下载: $URL"
+
+          for i in 1 2 3; do
+            curl -fsSL --retry 2 "$URL" -o webd.tar.gz && break
+            echo ">>> 重试 $i/3..."
+            sleep 10
+          done
+
+          # 解压到 _dl 子目录，避免 webd/ 目录与输出文件 webd-binary 冲突
           mkdir -p _dl && tar -xzf webd.tar.gz -C _dl
           cp _dl/webd/webd ./webd-binary
           chmod +x webd-binary
