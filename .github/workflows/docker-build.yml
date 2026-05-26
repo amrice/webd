@@ -29,13 +29,6 @@ jobs:
           chmod +x webd-bin
           ls -lh webd-bin
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Build image
         run: docker build . -t ghcr.io/${{ github.repository_owner }}/webd:20240223 -t ghcr.io/${{ github.repository_owner }}/webd:latest
 
