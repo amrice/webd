@@ -2,13 +2,7 @@ version: "3.8"
 
 services:
   webd:
-    # ── 方式一：从 GitHub Container Registry 拉取镜像（推荐） ──
-    # 替换 <你的GitHub用户名> 为实际用户名
-    # image: ghcr.io/<你的GitHub用户名>/webd:latest
-
-    # ── 方式二：本地构建 ──
-    build: .
-
+    image: ghcr.io/amrice/webd:latest
     container_name: webd
     restart: unless-stopped
     ports:
@@ -17,6 +11,5 @@ services:
       - ./data:/data                   # 网盘文件存储目录
       - ./webd.conf:/etc/webd.conf:ro  # 配置文件（只读挂载）
 
-    # 如果挂载了 webd.conf，webd 会自动读取，无需额外传参
-    # 若想用命令行参数覆盖配置文件，取消注释下面这行：
+    # 如果用配置文件则无需 command；若想用命令行参数覆盖，取消注释：
     # command: ["-w", "/data", "-u", "rlumSDT:admin:admin123", "-l", "0.0.0.0:9212"]
