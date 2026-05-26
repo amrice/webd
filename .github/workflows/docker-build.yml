@@ -34,9 +34,12 @@ jobs:
           if [ -n "${{ github.event.inputs.version }}" ]; then
             VER="${{ github.event.inputs.version }}"
           else
-            # 从下载页面解析所有日期版本目录，取最新
-            VER=$(curl -sS https://webd.cf/webd/webd_dl/ \
-              | grep -oP 'href="\K[0-9]{8}(?=/")' \
+            # 从 webd90kb/webd 仓库的 docs 目录解析版本号
+            # GitHub API 匿名限速 60次/小时，定时任务足够
+            VER=$(curl -sS -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/webd90kb/webd/contents/docs/webd/webd_dl" \
+              | jq -r '.[].name' \
+              | grep -E '^[0-9]{8}$' \
               | sort -rn \
               | head -1)
           fi
@@ -51,7 +54,7 @@ jobs:
       - name: Download webd binary
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          URL="https://webd.cf/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
+          URL="https://raw.githubusercontent.com/webd90kb/webd/master/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
           echo ">>> 下载: $URL"
           curl -fsSL "$URL" -o webd.tar.gz
           tar -xzf webd.tar.gz
