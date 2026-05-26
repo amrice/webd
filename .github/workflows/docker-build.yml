@@ -47,13 +47,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/webd:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/webd:latest
-          labels: |
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+      - name: Build Docker image
+        run: |
+          docker build . -t webd:test 2>&1
+
+      - name: Push to ghcr.io
+        run: |
+          V="${{ steps.version.outputs.version }}"
+          docker tag webd:test ghcr.io/${{ github.repository_owner }}/webd:${V}
+          docker tag webd:test ghcr.io/${{ github.repository_owner }}/webd:latest
+          docker push ghcr.io/${{ github.repository_owner }}/webd:${V}
+          docker push ghcr.io/${{ github.repository_owner }}/webd:latest
