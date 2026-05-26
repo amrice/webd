@@ -48,14 +48,11 @@ jobs:
       - name: Download webd binary
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          URL="https://raw.githubusercontent.com/webd90kb/webd/master/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
+          URL="https://api.github.com/repos/webd90kb/webd/contents/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
           echo ">>> 下载: $URL"
 
-          for i in 1 2 3; do
-            curl -fsSL --retry 2 --retry-delay 5 "$URL" -o webd.tar.gz && break
-            echo ">>> 重试 $i/3..."
-            sleep 5
-          done
+          # GitHub API raw 端点，同域内网，无需担心 CDN 限速
+          curl -fsSL -H "Accept: application/vnd.github.raw" "$URL" -o webd.tar.gz
 
           tar -xzf webd.tar.gz
           ls -la webd/
