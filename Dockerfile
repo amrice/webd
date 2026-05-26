@@ -1,5 +1,6 @@
 FROM alpine:3.21
 
+# webd 二进制已嵌入仓库 (63KB)
 COPY webd-binary /usr/local/bin/webd
 
 RUN chmod +x /usr/local/bin/webd \

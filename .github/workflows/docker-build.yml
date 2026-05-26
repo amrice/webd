@@ -5,13 +5,13 @@ on:
     branches: [master, main]
     paths:
       - 'Dockerfile'
+      - 'webd-binary'
       - '.github/workflows/docker-build.yml'
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       version:
-        description: '指定版本号（如 20240223），留空则自动检测'
+        description: '版本号（如 20240223）'
+        default: '20240223'
         required: false
 
 jobs:
@@ -25,40 +25,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Detect latest webd version
+      - name: Set version
         id: version
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          if [ -n "${{ github.event.inputs.version }}" ]; then
-            VER="${{ github.event.inputs.version }}"
-          else
-            VER=$(gh api repos/webd90kb/webd/contents/docs/webd/webd_dl \
-              --jq '.[].name' \
-              | grep -E '^[0-9]{8}$' \
-              | sort -rn \
-              | head -1)
-          fi
-          echo "version=$VER" >> "$GITHUB_OUTPUT"
-          echo ">>> 最新版本: $VER"
-
-      - name: Download webd binary
-        run: |
-          V="${{ steps.version.outputs.version }}"
-          URL="https://raw.githubusercontent.com/webd90kb/webd/master/docs/webd/webd_dl/${V}/webd-${V}-x86_64-linux-musl.tar.gz"
-          echo ">>> 下载: $URL"
-
-          for i in 1 2 3; do
-            curl -fsSL --retry 2 "$URL" -o webd.tar.gz && break
-            echo ">>> 重试 $i/3..."
-            sleep 10
-          done
-
-          # 解压到 _dl 子目录，避免 webd/ 目录与输出文件 webd-binary 冲突
-          mkdir -p _dl && tar -xzf webd.tar.gz -C _dl
-          cp _dl/webd/webd ./webd-binary
-          chmod +x webd-binary
-          ls -lh webd-binary
+          VER="${{ github.event.inputs.version }}"
+          echo "version=${VER}" >> "$GITHUB_OUTPUT"
+          echo ">>> 版本: $VER"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -77,4 +49,3 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/webd:latest
           labels: |
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
