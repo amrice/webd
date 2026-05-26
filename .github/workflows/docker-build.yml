@@ -1,0 +1,98 @@
+name: Docker Build & Push
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'Dockerfile'
+      - '.github/workflows/docker-build.yml'
+  schedule:
+    # 每天 UTC 2:00 检查是否有新版本发布
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # 手动触发（支持指定版本号）
+    inputs:
+      version:
+        description: '指定版本号（如 20240223），留空则自动检测最新版'
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 1. 检测最新版本 ──────────────────────────────────
+      - name: Detect latest webd version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VER="${{ github.event.inputs.version }}"
+          else
+            # 从下载页面解析所有日期版本目录，取最新
+            VER=$(curl -sS https://webd.cf/webd/webd_dl/ \
+              | grep -oP 'href="\K[0-9]{8}(?=/")' \
+              | sort -rn \
+              | head -1)
+          fi
+          if [ -z "$VER" ]; then
+            echo "::error::无法检测到 webd 版本"
+            exit 1
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo ">>> 最新版本: $VER"
+
+      # ── 2. 下载 webd 二进制 ──────────────────────────────
+      - name: Download webd binary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          URL="https://webd.cf/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
+          echo ">>> 下载: $URL"
+          curl -fsSL "$URL" -o webd.tar.gz
+          tar -xzf webd.tar.gz
+          # 解压后二进制在 webd/ 子目录下
+          cp webd/webd ./webd 2>/dev/null || cp webd-*/webd ./webd 2>/dev/null || true
+          chmod +x webd
+          ls -lh webd
+          file webd
+
+      # ── 3. 登录 ghcr.io ──────────────────────────────────
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 4. 检查该版本镜像是否已存在 ─────────────────────
+      - name: Check if version tag already exists
+        id: check
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          IMAGE="ghcr.io/${{ github.repository_owner }}/webd:${VERSION}"
+          if docker manifest inspect "$IMAGE" > /dev/null 2>&1; then
+            echo ">>> 镜像 ${IMAGE} 已存在，跳过构建"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo ">>> 镜像 ${IMAGE} 不存在，开始构建"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ── 5. 构建并推送 ────────────────────────────────────
+      - name: Build and push Docker image
+        if: steps.check.outputs.skip != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/webd:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/webd:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
