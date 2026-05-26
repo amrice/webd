@@ -6,8 +6,8 @@ COPY webd /usr/local/bin/webd
 
 RUN chmod +x /usr/local/bin/webd \
     && mkdir -p /data \
-    && file /usr/local/bin/webd \
     && ls -lh /usr/local/bin/webd \
+    && test -x /usr/local/bin/webd \
     && echo ">>> webd binary verified OK"
 
 EXPOSE 9212

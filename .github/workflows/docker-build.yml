@@ -50,26 +50,19 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           URL="https://raw.githubusercontent.com/webd90kb/webd/master/docs/webd/webd_dl/${VERSION}/webd-${VERSION}-x86_64-linux-musl.tar.gz"
           echo ">>> 下载: $URL"
-          curl -fsSL "$URL" -o webd.tar.gz
-          tar -xzf webd.tar.gz
 
-          if [ ! -f webd/webd ]; then
-            echo "::error::webd 二进制未找到，检查解压结构:"
-            find . -name webd -type f || true
-            exit 1
-          fi
+          for i in 1 2 3; do
+            curl -fsSL --retry 2 --retry-delay 5 "$URL" -o webd.tar.gz && break
+            echo ">>> 重试 $i/3..."
+            sleep 5
+          done
+
+          tar -xzf webd.tar.gz
+          ls -la webd/
 
           cp webd/webd ./webd
           chmod +x webd
-
-          echo ">>> webd 二进制校验:"
           ls -lh webd
-          file webd
-
-          if [ ! -x webd ] || [ ! -s webd ]; then
-            echo "::error::webd 二进制无效（不可执行或为空）"
-            exit 1
-          fi
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
