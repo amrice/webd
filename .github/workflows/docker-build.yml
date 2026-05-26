@@ -49,7 +49,7 @@ jobs:
           V="${{ steps.version.outputs.version }}"
           echo ">>> 下载 webd ${V}"
           gh api "repos/webd90kb/webd/contents/docs/webd/webd_dl/${V}/webd-${V}-x86_64-linux-musl.tar.gz" \
-            --header "Accept: application/vnd.github.raw" > webd.tar.gz
+            --jq '.content' | base64 -d > webd.tar.gz
           mkdir -p _dl && tar -xzf webd.tar.gz -C _dl
           cp _dl/webd/webd ./webd-binary
           chmod +x webd-binary
